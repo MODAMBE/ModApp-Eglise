@@ -111,7 +111,13 @@ def accueil(request):
     })
 
 from django.contrib.auth import get_user_model
+from django.contrib import messages
+from .models import Profile
+import random
+
 User = get_user_model()  # Utiliser le CustomUser
+
+
 # =========================== 
 # Inscription
 # ===========================
@@ -136,11 +142,8 @@ def inscription(request):
             elif User.objects.filter(username=username).exists():
                 form.add_error('username', "Ce nom d'utilisateur est déjà utilisé")
 
-            # Vérification du numéro de téléphone
-            elif User.objects.filter(phone=phone).exists():
-                # Récupérer l'utilisateur existant
-                existing_user = User.objects.get(phone=phone)
-                # Message avec lien vers la page de connexion
+            # Vérification du numéro de téléphone (dans Profile, pas User)
+            elif Profile.objects.filter(phone=phone).exists():
                 messages.error(
                     request,
                     f"Ce numéro est déjà utilisé pour un autre compte. "
@@ -148,12 +151,13 @@ def inscription(request):
                 )
 
             else:
-                # Création de l'utilisateur Django (CustomUser)
-                user = User.objects.create_user(username=username, password=password, phone=phone)
+                # Création de l'utilisateur Django (User n'a PAS phone)
+                user = User.objects.create_user(username=username, password=password)
 
                 # Création du profil
                 profile = form.save(commit=False)
                 profile.user = user
+                profile.phone = phone   # <- on place le numéro ici
                 profile.continent = request.POST.get('continent', '')
                 profile.pays = request.POST.get('pays', '')
                 profile.identite_complete = True
@@ -164,9 +168,8 @@ def inscription(request):
                 profile.is_verified = False  # marque le profil comme non vérifié
                 profile.save()
 
-                # Ici, envoyer le code par SMS ou email (simulé ici)
+                # Simulation d'envoi
                 print(f"Code de vérification envoyé à {profile.phone}: {verification_code}")
-                # Pour un vrai envoi SMS, utiliser Twilio ou autre API
 
                 # Redirection vers la page de confirmation du code
                 return redirect('eglise:confirme_code', user_id=profile.id)

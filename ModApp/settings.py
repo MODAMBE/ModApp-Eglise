@@ -1,40 +1,37 @@
 from pathlib import Path
 from django.contrib.messages import constants as messages
-from decouple import config  # pour .env
-import os
+from decouple import config
 import dj_database_url
+import os
 
 # ============================================================
 # BASE
 # ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# 🔑 Clé secrète (local ou Render via .env)
 SECRET_KEY = config(
     "SECRET_KEY",
-    default="JMN10-MO019-3DAMB-19NZO-11MLM"
+    default="django-insecure-ezho_*p@*1$5!c7e^rgv#94jple&^3rjvga7tv=stz+5h(3r+z"
 )
 
-DEBUG = config("DEBUG", default=False, cast=bool)
+# ⚙️ Mode DEBUG
+DEBUG = config("DEBUG", default=True, cast=bool)
 
+# 🌐 Hôtes autorisés — local + Render
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
-    default="modapp-eglise-7.onrender.com,localhost,127.0.0.1",
+    default="localhost,127.0.0.1,192.168.43.5,modapp-eglise-11-gmby.onrender.com",
     cast=lambda v: [s.strip() for s in v.split(",")]
 )
 
-# 🔥 OBLIGATOIRE SUR RENDER POUR ÉVITER ERREUR 400
+# 🔒 CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
-    "https://modapp-eglise-7-abc123.onrender.com",
-    "https://modapp-eglise-7.onrender.com",
+    "https://modapp-eglise-11-gmby.onrender.com",
     "https://*.onrender.com",
 ]
 
-# ============================================================
-# ORANGE MONEY CONFIGURATION
-# ============================================================
-ORANGE_MONEY_RECEIVER = config("ORANGE_MONEY_RECEIVER", default="")
-ORANGE_MONEY_MIN_MONTANT = config("ORANGE_MONEY_MIN_MONTANT", default=0, cast=int)
-ORANGE_MONEY_API_KEY = config("ORANGE_MONEY_API_KEY", default="")
 
 # ============================================================
 # APPLICATIONS
@@ -46,16 +43,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'eglise',
-    'django_extensions',
+
+    'eglise',           # ton app
+    'channels',         # WebSockets
+    'django_extensions'
 ]
+
 
 # ============================================================
 # MIDDLEWARE
 # ============================================================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise après SecurityMiddleware
+
+    # Whitenoise pour Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -64,13 +67,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
 # ============================================================
-# URLS & TEMPLATES
+# URLS, WSGI, ASGI
 # ============================================================
 ROOT_URLCONF = 'ModApp.urls'
+
 WSGI_APPLICATION = 'ModApp.wsgi.application'
 ASGI_APPLICATION = 'ModApp.asgi.application'
 
+
+# ============================================================
+# TEMPLATES
+# ============================================================
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -90,8 +99,9 @@ TEMPLATES = [
     },
 ]
 
+
 # ============================================================
-# DATABASE
+# BASE DE DONNÉES : SQLite local + PostgreSQL Render
 # ============================================================
 DATABASES = {
     'default': dj_database_url.config(
@@ -100,47 +110,60 @@ DATABASES = {
     )
 }
 
+
 # ============================================================
-# PASSWORD VALIDATION
+# VALIDATION MOT DE PASSE
 # ============================================================
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+     'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+
 # ============================================================
-# INTERNATIONALIZATION
+# INTERNATIONALISATION
 # ============================================================
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Africa/Kinshasa'
 USE_I18N = True
 USE_TZ = True
 
+
 # ============================================================
 # STATIC & MEDIA
 # ============================================================
+
 STATIC_URL = '/static/'
+
 STATICFILES_DIRS = [
     BASE_DIR / "static",
     BASE_DIR / "eglise" / "static",
 ]
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# === MEDIA ===
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# Permet d'afficher les médias en local
+if DEBUG:
+    print("⚠️ DEBUG actif — MEDIA servis en local")
+
 
 # ============================================================
-# AUTH
+# AUTHENTIFICATION
 # ============================================================
 AUTH_USER_MODEL = 'eglise.CustomUser'
 LOGIN_URL = 'eglise:connexion'
 LOGIN_REDIRECT_URL = 'eglise:accueil'
 LOGOUT_REDIRECT_URL = '/'
+
 
 # ============================================================
 # MESSAGES
@@ -153,19 +176,24 @@ MESSAGE_TAGS = {
     messages.ERROR: 'error',
 }
 
+
 # ============================================================
 # CHANNELS
 # ============================================================
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
 }
 
-# ============================================================
-# HTTPS & CORS
-# ============================================================
-#  Render gère SSL lui-même, donc ne jamais forcer HTTPS ici
-SECURE_SSL_REDIRECT = False
 
+# ============================================================
+# HTTPS
+# ============================================================
+SECURE_SSL_REDIRECT = False  # SSL géré par Render
+
+
+# ============================================================
+# CORS
+# ============================================================
 CORS_ALLOW_ALL_ORIGINS = True

@@ -99,4 +99,11 @@ class RewardedAdAdmin(admin.ModelAdmin):
     list_filter = ('actif',)
     ordering = ('-coins_bonus',)
 
-# Les autres sections restent inchangées...
+# # Abonnement
+if Abonnement not in admin.site._registry:
+    @admin.register(Abonnement)
+    class AbonnementAdmin(admin.ModelAdmin):
+        list_display = ('utilisateur', 'chaine', 'date_abonnement')
+        list_filter = ('chaine',)
+        search_fields = ('utilisateur__username', 'chaine__nom')
+        ordering = ('-date_abonnement',)
